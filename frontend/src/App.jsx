@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import Navigation from './components/Navigation';
 import Slide01Title from './slides/Slide01Title';
 import Slide02Overview from './slides/Slide02Overview';
@@ -31,6 +31,8 @@ const slides = [
 function App() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [scale, setScale] = useState(1);
+  const [slideH, setSlideH] = useState(SLIDE_H);
+  const innerRef = useRef(null);
 
   const nextSlide = () => {
     setCurrentSlide((prev) => Math.min(prev + 1, slides.length - 1));
@@ -40,18 +42,23 @@ function App() {
     setCurrentSlide((prev) => Math.max(prev - 1, 0));
   };
 
-  useEffect(() => {
-    const computeScale = () => {
+  // Measure the active slide's actual rendered height, then compute scale.
+  // useLayoutEffect runs before paint so there's no visible flash.
+  useLayoutEffect(() => {
+    const compute = () => {
+      if (!innerRef.current) return;
+      const h = Math.max(innerRef.current.scrollHeight, SLIDE_H);
       const s = Math.min(
         window.innerWidth / SLIDE_W,
-        (window.innerHeight - NAV_H) / SLIDE_H
+        (window.innerHeight - NAV_H) / h
       );
+      setSlideH(h);
       setScale(s);
     };
-    computeScale();
-    window.addEventListener('resize', computeScale);
-    return () => window.removeEventListener('resize', computeScale);
-  }, []);
+    compute();
+    window.addEventListener('resize', compute);
+    return () => window.removeEventListener('resize', compute);
+  }, [currentSlide]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -64,18 +71,20 @@ function App() {
 
   return (
     <div className="presentation-container">
-      {/* Outer div occupies the visible (scaled) dimensions in the layout */}
-      <div style={{ width: SLIDE_W * scale, height: SLIDE_H * scale, position: 'relative', overflow: 'hidden' }}>
-        {/* Inner div is fixed at design size and scaled down */}
-        <div style={{
-          width: SLIDE_W,
-          height: SLIDE_H,
-          transform: `scale(${scale})`,
-          transformOrigin: 'top left',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-        }}>
+      {/* Outer div is sized to the post-scale visible dimensions */}
+      <div style={{ width: SLIDE_W * scale, height: slideH * scale, position: 'relative', overflow: 'hidden' }}>
+        {/* Inner div renders at natural size; transform scales it to fit */}
+        <div
+          ref={innerRef}
+          style={{
+            width: SLIDE_W,
+            transform: `scale(${scale})`,
+            transformOrigin: 'top left',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+          }}
+        >
           {slides.map((Slide, index) => (
             <div key={index} className={`slide-wrapper ${index === currentSlide ? 'active' : ''}`}>
               <Slide />
