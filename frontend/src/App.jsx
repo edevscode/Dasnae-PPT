@@ -1,5 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import Navigation from './components/Navigation';
+import BackgroundDecor from './components/BackgroundDecor';
 import Slide01Title from './slides/Slide01Title';
 import Slide02Overview from './slides/Slide02Overview';
 import Slide03Background from './slides/Slide03Background';
@@ -71,6 +72,7 @@ function App() {
 
   return (
     <div className="presentation-container">
+      <BackgroundDecor />
       {/* Outer div is sized to the post-scale visible dimensions */}
       <div style={{ width: SLIDE_W * scale, height: slideH * scale, position: 'relative', overflow: 'hidden' }}>
         {/* Inner div renders at natural size; transform scales it to fit */}
